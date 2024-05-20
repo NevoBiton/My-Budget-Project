@@ -8,8 +8,7 @@ let currentIncomes = Number(localStorage.getItem("income")) || 0;//and if not ex
 let currentExpenses = Number(localStorage.getItem("expenses")) || 0;
 let totalIncomes = JSON.parse(localStorage.getItem("total-incomes")) || [];
 let totalExspenses = JSON.parse(localStorage.getItem("total-expenses")) || [];
-let incomeActionsCounter = 0;
-let expensesActionsCounter = 0;
+
 
 // Inputs and buttons elems 
 const elemActionSelector = document.querySelector('.type-of-action-input');
@@ -91,9 +90,7 @@ function printCurrentIncomesOnReload() {
             const newDiv = document.createElement("div");
             elemIncomeDetails.appendChild(newDiv);
             newDiv.classList.add("last-action-wrapper");
-            newDiv.id = `income${incomeActionsCounter}`;
             newDiv.innerHTML = `<p>${description}</p><div class="button-and-value-wrapper"><p>+${formatNumberWithCommas(value)}</p><button onclick="removeDivAction(this.parentNode.parentNode,'income')" class ="income-remove-button">${removeActionButton}</button></div>`;
-            incomeActionsCounter++;
         });
         elemTotalIncome.innerHTML = `+ ${formatNumberWithCommas(currentIncomes)}`;
         localStorage.setItem("income", currentIncomes);
@@ -110,9 +107,7 @@ function printCurrentExpensesOnReload() {
             const newDiv = document.createElement("div");
             elemExpensesDetails.appendChild(newDiv);
             newDiv.classList.add("last-action-wrapper");
-            newDiv.id = `expenses${expensesActionsCounter}`;
             newDiv.innerHTML = `<p>${description}</p><div class="button-and-value-wrapper"><p>-${formatNumberWithCommas(value)}</p><p class="each-expense-percentage">${currentItemPercentage}</p><button onclick="removeDivAction(this.parentNode.parentNode,'expense')" class ="expenses-remove-button">${removeActionButton}</button></div>`;
-            expensesActionsCounter++;
         });
         elemTotalExpenses.innerHTML = `- ${formatNumberWithCommas(currentExpenses)}`;
         localStorage.setItem("expenses", currentExpenses);
@@ -148,34 +143,37 @@ function formatNumberWithCommas(number) { // this function convert the number to
     return number.toLocaleString(undefined, { minimumFractionDigits: 2 });
 }
 
-function removeDivAction(elem, type) { // this function execute every time the user click on the remove button for each div
-    elem.remove();
-    let elementId = elem.id;
-    elementId = elementId.match(/\d+/g);
-    elementId = elementId.join('');
-    // elementId = elementId.match(/\d+$/)[0]; // takes the number from the ID 
-    console.log(elementId);
-    let valueOfRemovedItem;
-    if (type == "income") {
-        valueOfRemovedItem = Object.values(totalIncomes[elementId]); //return an array with the value of the removed div
-        valueOfRemovedItem = valueOfRemovedItem[0]; // convert the one number array to number
-        totalIncomes.splice(elementId, 1);
+function removeDivAction(item, type) {
+    if (type === "income") {
+        const elemIncomeDetails = document.querySelector(".income-details");
+        let index = Array.from(elemIncomeDetails.children).indexOf(item) - 1 // the minus 1 because the h3 element is count in the children
+        valueOfRemovedItem = Object.values(totalIncomes[index]); //return an array with the value of the removed div
+        valueOfRemovedItem = valueOfRemovedItem[0];
+        console.log(index);
+        console.log(valueOfRemovedItem);
+        totalIncomes.splice(index, 1);
+        elemIncomeDetails.removeChild(item);
         updateLocalStorageAfterIncomeRemove(valueOfRemovedItem);
     }
     else {
-        valueOfRemovedItem = Object.values(totalExspenses[elementId]); //return an array with the value
+        const elemExpensesDetails = document.querySelector(".expenses-details");
+        let index = Array.from(elemExpensesDetails.children).indexOf(item) - 1 // the minus 1 because the h3 element is count in the children
+        valueOfRemovedItem = Object.values(totalExspenses[index]); //return an array with the value of the removed div
         valueOfRemovedItem = valueOfRemovedItem[0];
-        totalExspenses.splice(elementId, 1);
-        localStorage.setItem("total-expenses", JSON.stringify(totalExspenses));
+        console.log(index);
+        console.log(valueOfRemovedItem);
+        totalExspenses.splice(index, 1);
+        elemExpensesDetails.removeChild(item);
         updateLocalStorageAfterExpenseRemove(valueOfRemovedItem);
+
     }
+
     currentBudget = 0;
     currentBudget = (currentBudget + localStorage.getItem("income")) - localStorage.getItem("expenses");
     elemCurrentBudget.innerHTML = printBudgetPositiveOrNegative();
     localStorage.setItem("budget", currentBudget);
     elemTotalExpensesPercentage.innerHTML = totalExpensesPercentageCalc()
     setCurrentExpensesPercentage()
-
 }
 
 function updateLocalStorageAfterIncomeRemove(value) {
@@ -183,23 +181,13 @@ function updateLocalStorageAfterIncomeRemove(value) {
     currentIncomes -= value;
     localStorage.setItem("income", currentIncomes);
     elemTotalIncome.innerHTML = `+ ${formatNumberWithCommas(currentIncomes)}`;
-    document.querySelectorAll('.income-details .last-action-wrapper').forEach((div, index) => { // this function loop through all the action divs and update their ID's to be settled in ascending order start from 0
-        div.id = `income${index}`;
-    });
-    incomeActionsCounter--; // decrease the counter of the income actions after the action div is removed
 }
-
 
 function updateLocalStorageAfterExpenseRemove(value) {
     localStorage.setItem("total-expenses", JSON.stringify(totalExspenses)); // update the array after the div splice
     currentExpenses -= value;
     localStorage.setItem("expenses", currentExpenses);
     elemTotalExpenses.innerHTML = `- ${formatNumberWithCommas(currentExpenses)}`;
-    // Reset IDs of remaining divs
-    document.querySelectorAll('.expenses-details .last-action-wrapper').forEach((div, index) => { // this function loop through all the action divs and update their ID's to be settled in ascending order start from 0
-        div.id = `expenses${index}`;
-    });
-    expensesActionsCounter--; // decrease the counter of the expenses actions after the action div is removed
 }
 
 function setCurrentExpensesPercentage() { // this function loop through all the action divs and updates their percentage accorantly to the latest action div remove. 
@@ -255,8 +243,6 @@ function printLastIncomeDetail() {
         // Print action to page
         elemIncomeDetails.appendChild(newDiv);
         newDiv.classList.add("last-action-wrapper");
-        newDiv.id = `income${incomeActionsCounter}`;
-        incomeActionsCounter++;
         newDiv.innerHTML = `<p>${elemActionDescriptionInput.value}</p><div class="button-and-value-wrapper"><p>+${formatNumberWithCommas(lastIncome)}</p><button onclick="removeDivAction(this.parentNode.parentNode,'income')" class ="income-remove-button">${removeActionButton}</button></div>`;
 
     }
@@ -275,8 +261,6 @@ function printLastExpenseDetail() {
         // Print action to page
         elemIncomeDetails.appendChild(newDiv);
         newDiv.classList.add("last-action-wrapper");
-        newDiv.id = `expenses${expensesActionsCounter}`;
-        expensesActionsCounter++;
         newDiv.innerHTML = `<p>${elemActionDescriptionInput.value}</p><div class="button-and-value-wrapper"><p>-${formatNumberWithCommas(lastExpense)}</p><p class = "each-expense-percentage"></p><button onclick="removeDivAction(this.parentNode.parentNode,'expense')" class ="expenses-remove-button">${removeActionButton}</button></div>`;
     }
 }
